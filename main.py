@@ -1,8 +1,8 @@
 
 import config 
 from bot import client, tree
-from services import account
-from api.riot_api import riot_api
+import eventhook
+import commands
 
 @client.event
 async def on_ready():

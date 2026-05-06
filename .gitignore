@@ -1,1 +1,8 @@
 .env
+data.json
+token.json
+*.txt
+!requirements.txt
+data.db
+dbschema.png
+throw.py
