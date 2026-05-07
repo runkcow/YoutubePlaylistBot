@@ -11,14 +11,17 @@ def construct_playlist_url (playlist_id: str) -> str:
     return f"https://www.youtube.com/playlist?list={playlist_id}"
 
 async def channel_auto_complete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice]:
+    search = current.lower()
     choices = []
     for cid in Database.get_channels():
-        ch = client.get_channel(cid)
-        if ch.guild.id != interaction.guild_id:
+        ch = interaction.guild.get_channel(cid)
+        if not ch:
             continue
-        if ch and current in ch.name.lower():
+        if search in ch.name.lower():
             choices.append(app_commands.Choice(name=ch.name, value=str(cid)))
-    return choices[:25]
+        if len(choices) >= 25:
+            break
+    return choices
 
 @tree.command(name="addchannel", description="Add channel to tracking", guilds=GUILD_LIST)
 @discord.app_commands.describe(

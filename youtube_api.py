@@ -85,9 +85,13 @@ async def add_playlist_video (playlist_id: str, video_id: str) -> tuple[bool, st
         if e.resp.status == 409:
             return (False, f'Status error @ add_playlist_video | Duplicate video (409): {e}')
         elif e.resp.status == 403:
+            update_quota_data(0, quota_data["last_check"])
             return (False, f'Status error @ add_playlist_video | Quota exceeded (403): {e}')
         elif e.resp.status == 404:
             print(f'Status notice @ add_playlist_video | Video {video_id} not found (404): {e}')
+            return (True, "")
+        elif e.resp.status == 400:
+            print(f'Status notice @ add_playlist_video | Video {video_id} address changed ? (400): {e}')
             return (True, "")
         else:
             return (False, f'Status error @ add_playlist_video | Unknown ({e.resp.status}): {e}')
