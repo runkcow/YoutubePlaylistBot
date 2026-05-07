@@ -14,8 +14,10 @@ async def channel_auto_complete(interaction: discord.Interaction, current: str) 
     choices = []
     for cid in Database.get_channels():
         ch = client.get_channel(cid)
+        if ch.guild.id != interaction.guild_id:
+            continue
         if ch and current in ch.name.lower():
-            choices.append(app_commands.Choice(name=ch.name, value=cid))
+            choices.append(app_commands.Choice(name=ch.name, value=str(cid)))
     return choices[:25]
 
 @tree.command(name="addchannel", description="Add channel to tracking", guilds=GUILD_LIST)
@@ -38,9 +40,10 @@ async def add_channel(interaction: discord.Interaction, channel: discord.TextCha
     start_update_playlist(channel.id)
 
 @tree.command(name="removechannel", description="Remove channel from tracking", guilds=GUILD_LIST)
-@app_commands.autocomplete(channel_id=channel_auto_complete)
-@discord.app_commands.describe(channel_id="Channel to remove")
-async def remove_channel(interaction: discord.Interaction, channel_id: int):
+@app_commands.autocomplete(channel_id_str=channel_auto_complete)
+@discord.app_commands.describe(channel_id_str="Channel to remove")
+async def remove_channel(interaction: discord.Interaction, channel_id_str: str):
+    channel_id = int(channel_id_str)
     channel = client.get_channel(channel_id)
     if Database.remove_channel(channel_id):
         await interaction.response.send_message(f'Channel {channel.name} has been removed from tracking', ephemeral=True)
@@ -52,9 +55,10 @@ async def remove_channel(interaction: discord.Interaction, channel_id: int):
 #       and technically unnecessary
 
 @tree.command(name="getchannelplaylist", description="Send channel's playlist url", guilds=GUILD_LIST)
-@app_commands.autocomplete(channel_id=channel_auto_complete)
-@discord.app_commands.describe(channel_id="Channel")
-async def get_channel_playlist(interaction: discord.Interaction, channel_id: int):
+@app_commands.autocomplete(channel_id_str=channel_auto_complete)
+@discord.app_commands.describe(channel_id_str="Channel")
+async def get_channel_playlist(interaction: discord.Interaction, channel_id_str: str):
+    channel_id = int(channel_id_str)
     channel = client.get_channel(channel_id)
     start_update_playlist(channel_id)
     await interaction.response.send_message(f'Channel {channel.name} playlist: {construct_playlist_url(Database.get_channel_playlist(channel_id))}', ephemeral=True)

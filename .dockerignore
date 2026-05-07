@@ -1,4 +1,3 @@
-__pycache__/
 .env
 data.json
 token.json
@@ -6,3 +5,8 @@ token.json
 !requirements.txt
 data.db
 dbschema.png
+__pycache__/
+venv/
+.git
+.gitignore
+dockerfile

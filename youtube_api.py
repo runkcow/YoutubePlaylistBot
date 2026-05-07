@@ -3,6 +3,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import re
 from urllib.parse import urlparse, parse_qs
+import asyncio
 import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -52,6 +53,20 @@ def quota_reset_passed (last_check: int) -> bool:
 def get_youtube ():
     return build("youtube", "v3", credentials=get_creds())
 
+def _add_playlist_video_sync (playlist_id: str, video_id: str):
+    return get_youtube().playlistItems().insert(
+        part="snippet",
+        body={
+            "snippet": {
+                "playlistId": playlist_id,
+                "resourceId": {
+                    "kind": "youtube#video",
+                    "videoId": video_id,
+                }
+            }
+        }
+    ).execute()
+
 async def add_playlist_video (playlist_id: str, video_id: str) -> tuple[bool, str]:
     quota_data = dict(get_data_quota())
     if quota_reset_passed(quota_data["last_check"]):
@@ -60,18 +75,7 @@ async def add_playlist_video (playlist_id: str, video_id: str) -> tuple[bool, st
     if quota_data["remaining_quota"] < Config.YOUTUBE_API_QUOTA_PLAYLIST_INSERT_COST:
         return (False, f'Error @ add_playlist_video | Insufficient quota')
     try:
-        get_youtube().playlistItems().insert(
-            part="snippet",
-            body={
-                "snippet": {
-                    "playlistId": playlist_id,
-                    "resourceId": {
-                        "kind": "youtube#video",
-                        "videoId": video_id,
-                    }
-                }
-            }
-        ).execute()
+        await asyncio.to_thread(_add_playlist_video_sync, playlist_id, video_id)
         # assume this worked if no httperror is thrown
         quota_data["remaining_quota"] -= Config.YOUTUBE_API_QUOTA_PLAYLIST_INSERT_COST
         update_quota_data(quota_data["remaining_quota"], quota_data["last_check"])
@@ -82,9 +86,26 @@ async def add_playlist_video (playlist_id: str, video_id: str) -> tuple[bool, st
             return (False, f'Status error @ add_playlist_video | Duplicate video (409): {e}')
         elif e.resp.status == 403:
             return (False, f'Status error @ add_playlist_video | Quota exceeded (403): {e}')
+        elif e.resp.status == 404:
+            print(f'Status notice @ add_playlist_video | Video {video_id} not found (404): {e}')
+            return (True, "")
         else:
             return (False, f'Status error @ add_playlist_video | Unknown ({e.resp.status}): {e}')
     
+def _create_playlist_sync (playlist_name: str, playlist_description: str):
+    return get_youtube().playlists().insert(
+        part="snippet,status",
+        body={
+            "snippet": {
+                "title": playlist_name[:150],
+                "description": playlist_description[:5000],
+            },
+            "status": {
+                "privacyStatus": "unlisted"
+            }
+        }
+    ).execute()
+
 async def create_playlist (playlist_name: str, playlist_description: str = "") -> tuple[bool, str]:
     quota_data = dict(get_data_quota())
     if quota_reset_passed(quota_data["last_check"]):
@@ -93,18 +114,7 @@ async def create_playlist (playlist_name: str, playlist_description: str = "") -
     if quota_data["remaining_quota"] < Config.YOUTUBE_API_QUOTA_PLAYLIST_CREATE_COST:
         return (False, f'Error @ create_playlist | Insufficient quota')
     try:
-        response = get_youtube().playlists().insert(
-            part="snippet,status",
-            body={
-                "snippet": {
-                    "title": playlist_name[:150],
-                    "description": playlist_description[:5000],
-                },
-                "status": {
-                    "privacyStatus": "unlisted"
-                }
-            }
-        ).execute()
+        response = await asyncio.to_thread(_create_playlist_sync, playlist_name, playlist_description)
         quota_data["remaining_quota"] -= Config.YOUTUBE_API_QUOTA_PLAYLIST_CREATE_COST
         update_quota_data(quota_data["remaining_quota"], quota_data["last_check"])
         return (True, response["id"])

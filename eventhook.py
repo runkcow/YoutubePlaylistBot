@@ -41,10 +41,13 @@ async def _update_playlist(channel_id: int):
             continue
         for word in message.content.split():
             video_id = extract_video_id(word)
-            if video_id is not None:
+            if video_id is None:
+                continue
+            if not Database.get_playlist_contains_video(playlist_id, video_id):
                 success, msg = await add_playlist_video(playlist_id, video_id)
                 if success:
-                    Database.add_playlist_video(channel_id, video_id)
+                    Database.add_playlist_video(playlist_id, video_id)
+                    print(f'Update @ update_playlist | Video {video_id} added to playlist {playlist_id}')
                 else:
                     print(msg)
                     return

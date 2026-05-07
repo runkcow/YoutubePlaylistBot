@@ -13,6 +13,11 @@ def get_channels () -> list[int]:
         row = conn.execute("SELECT channel_id FROM channel_playlists").fetchall()
         return [ i["channel_id"] for i in row ]
 
+def get_active_channels () -> list[int]:
+    with getconn() as conn:
+        row = conn.execute("SELECT channel_id FROM channel_playlists WHERE active = 1").fetchall()
+        return [ i["channel_id"] for i in row ]
+
 def get_channel (channel_id: int) -> list[dict]:
     with getconn() as conn:
         row = conn.execute("SELECT * from channel_playlists WHERE channel_id = ?", (channel_id, )).fetchone()

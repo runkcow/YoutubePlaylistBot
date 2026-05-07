@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  youtubeplaylistbot:
+    image: runkcow/youtubeplaylistbot:latest
+    container_name: bot
+    restart: always
+    environment:
+      - TZ=America/Los_Angeles
+    volumes:
+      - /mnt/stateful_partition/bot-data/data.db:/app/data.db
+      - /mnt/stateful_partition/bot-data/token.json:/app/token.json
+      - /mnt/stateful_partition/bot-data/.env:/app/.env
+    stdin_open: true
+    tty: true
