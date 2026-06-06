@@ -63,5 +63,5 @@ async def remove_channel(interaction: discord.Interaction, channel_id_str: str):
 async def get_channel_playlist(interaction: discord.Interaction, channel_id_str: str):
     channel_id = int(channel_id_str)
     channel = client.get_channel(channel_id)
-    start_update_playlist(channel_id)
     await interaction.response.send_message(f'Channel {channel.name} playlist: {construct_playlist_url(Database.get_channel_playlist(channel_id))}', ephemeral=True)
+    start_update_playlist(channel_id)
